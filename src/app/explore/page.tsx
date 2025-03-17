@@ -1,19 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { FiHeart, FiMessageCircle, FiFilter } from 'react-icons/fi'
 import { toast } from 'sonner'
-import io from 'socket.io-client'
+import io, { Socket } from 'socket.io-client'
 
-let socket: any
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+}
 
-type Post = {
-  id: string
-  content: string
-  mood: string
-  createdAt: string
-  likes: { id: string }[]
-  comments: { id: string; content: string; createdAt: string }[]
+interface Post {
+  id: string;
+  content: string;
+  mood: string;
+  createdAt: string;
+  likes: { id: string }[];
+  comments: Comment[];
 }
 
 export default function ExplorePage() {
@@ -22,37 +26,42 @@ export default function ExplorePage() {
   const [activePost, setActivePost] = useState<string | null>(null)
   const [newComment, setNewComment] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [isSocketConnected, setIsSocketConnected] = useState(false)
+  const socketRef = useRef<Socket | null>(null)
 
   useEffect(() => {
     const initSocket = async () => {
       try {
-        // First, try to connect to the WebSocket server
-        const response = await fetch('/api/socket')
-        if (!response.ok) throw new Error('Failed to initialize WebSocket')
-        
-        // Try different ports
-        const ports = [3001, 3002, 3003, 3004, 3005]
-        for (const port of ports) {
-          try {
-            socket = io(`http://localhost:${port}`, {
-              path: '/api/socket',
-              reconnection: true,
-              reconnectionAttempts: 5,
-            })
-            console.log(`Connected to WebSocket server on port ${port}`)
-            break
-          } catch (error) {
-            console.log(`Failed to connect on port ${port}`)
-            continue
-          }
-        }
+        // Initialize socket connection
+        const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
+          path: '/api/socket',
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000,
+        })
 
-        socket.on('post-created', (newPost) => {
+        newSocket.on('connect', () => {
+          console.log('Connected to WebSocket server')
+          setIsSocketConnected(true)
+        })
+
+        newSocket.on('connect_error', (error) => {
+          console.error('Socket connection error:', error)
+          setIsSocketConnected(false)
+          toast.error('Failed to connect to real-time updates')
+        })
+
+        newSocket.on('disconnect', () => {
+          console.log('Disconnected from WebSocket server')
+          setIsSocketConnected(false)
+        })
+
+        newSocket.on('post-created', (newPost: Post) => {
           setPosts((prev) => [newPost, ...prev])
           toast.success('New thought shared!')
         })
 
-        socket.on('comment-created', ({ postId, comment }) => {
+        newSocket.on('comment-created', ({ postId, comment }: { postId: string; comment: Comment }) => {
           setPosts((prev) =>
             prev.map((post) =>
               post.id === postId
@@ -62,13 +71,19 @@ export default function ExplorePage() {
           )
         })
 
-        socket.on('like-updated', ({ postId, likes }) => {
+        newSocket.on('like-updated', ({ postId, likes }: { postId: string; likes: { id: string }[] }) => {
           setPosts((prev) =>
             prev.map((post) =>
               post.id === postId ? { ...post, likes } : post
             )
           )
         })
+
+        socketRef.current = newSocket
+
+        return () => {
+          newSocket.close()
+        }
       } catch (error) {
         console.error('Failed to initialize WebSocket:', error)
         toast.error('Failed to connect to real-time updates')
@@ -77,15 +92,6 @@ export default function ExplorePage() {
 
     initSocket()
     fetchPosts()
-
-    return () => {
-      if (socket) {
-        socket.off('post-created')
-        socket.off('comment-created')
-        socket.off('like-updated')
-        socket.disconnect()
-      }
-    }
   }, [])
 
   const fetchPosts = async () => {
@@ -95,6 +101,7 @@ export default function ExplorePage() {
       const data = await response.json()
       setPosts(data)
     } catch (error) {
+      console.error('Error fetching posts:', error)
       toast.error('Failed to load posts')
     } finally {
       setIsLoading(false)
@@ -108,10 +115,12 @@ export default function ExplorePage() {
       })
       if (!response.ok) throw new Error('Failed to like post')
       const { likes } = await response.json()
-      if (socket) {
-        socket.emit('new-like', { postId, likes })
+      
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('like-updated', { postId, likes })
       }
     } catch (error) {
+      console.error('Error liking post:', error)
       toast.error('Failed to like post')
     }
   }
@@ -129,12 +138,13 @@ export default function ExplorePage() {
       if (!response.ok) throw new Error('Failed to add comment')
       const comment = await response.json()
       
-      if (socket) {
-        socket.emit('new-comment', { postId, comment })
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('comment-created', { postId, comment })
       }
       setNewComment('')
       toast.success('Comment added!')
     } catch (error) {
+      console.error('Error adding comment:', error)
       toast.error('Failed to add comment')
     }
   }

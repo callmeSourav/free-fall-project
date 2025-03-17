@@ -1,10 +1,42 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useInView, Variants } from 'framer-motion';
 import Link from 'next/link';
 import { FiArrowRight, FiHeart, FiMessageSquare, FiShare2 } from 'react-icons/fi';
+import { useRef } from 'react';
 
 export default function Home() {
+  const featuresRef = useRef(null);
+  const ctaRef = useRef(null);
+  const featuresInView = useInView(featuresRef, { once: true });
+  const ctaInView = useInView(ctaRef, { once: true });
+
+  const backgroundAnimation: Variants = {
+    animate: {
+      x: [0, 100, 0],
+      y: [0, 50, 0],
+      scale: [1, 1.2, 1],
+      transition: {
+        duration: 20,
+        repeat: Infinity,
+        ease: "linear"
+      }
+    }
+  };
+
+  const backgroundAnimation2: Variants = {
+    animate: {
+      x: [0, -100, 0],
+      y: [0, -50, 0],
+      scale: [1, 1.2, 1],
+      transition: {
+        duration: 20,
+        repeat: Infinity,
+        ease: "linear"
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Hero Section */}
@@ -13,29 +45,13 @@ export default function Home() {
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
             className="absolute w-96 h-96 bg-blue-100 rounded-full filter blur-3xl opacity-20"
-            animate={{
-              x: [0, 100, 0],
-              y: [0, 50, 0],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear"
-            }}
+            variants={backgroundAnimation}
+            animate="animate"
           />
           <motion.div
             className="absolute w-96 h-96 bg-purple-100 rounded-full filter blur-3xl opacity-20"
-            animate={{
-              x: [0, -100, 0],
-              y: [0, -50, 0],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear"
-            }}
+            variants={backgroundAnimation2}
+            animate="animate"
           />
         </div>
 
@@ -80,13 +96,12 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white" ref={featuresRef}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            animate={featuresInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
             className="text-3xl md:text-4xl font-bold text-center mb-12 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
           >
             Why Choose FreeFall?
@@ -112,9 +127,8 @@ export default function Home() {
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                animate={featuresInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                 transition={{ duration: 0.8, delay: index * 0.2 }}
-                viewport={{ once: true }}
                 className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100"
               >
                 <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white mb-4">
@@ -129,13 +143,12 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-50 to-purple-50">
+      <section className="py-20 bg-gradient-to-r from-blue-50 to-purple-50" ref={ctaRef}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            animate={ctaInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Ready to Start Your Journey?

@@ -3,37 +3,54 @@
 import { useState, useEffect } from 'react'
 import { FiInfo } from 'react-icons/fi'
 import { toast } from 'sonner'
-import io from 'socket.io-client'
+import io, { Socket } from 'socket.io-client'
 
-let socket: any
+interface Post {
+  id: string;
+  content: string;
+  mood: string;
+  createdAt: string;
+  comments: any[]; // Add comments array to match the explore page structure
+}
 
 export default function SharePage() {
   const [content, setContent] = useState('')
   const [mood, setMood] = useState('neutral')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSocketConnected, setIsSocketConnected] = useState(false)
+  const [socket, setSocket] = useState<Socket | null>(null)
 
   useEffect(() => {
     const initSocket = async () => {
       try {
-        // First, try to connect to the WebSocket server
-        const response = await fetch('/api/socket')
-        if (!response.ok) throw new Error('Failed to initialize WebSocket')
-        
-        // Try different ports
-        const ports = [3001, 3002, 3003, 3004, 3005]
-        for (const port of ports) {
-          try {
-            socket = io(`http://localhost:${port}`, {
-              path: '/api/socket',
-              reconnection: true,
-              reconnectionAttempts: 5,
-            })
-            console.log(`Connected to WebSocket server on port ${port}`)
-            break
-          } catch (error) {
-            console.log(`Failed to connect on port ${port}`)
-            continue
-          }
+        // Initialize socket connection
+        const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
+          path: '/api/socket',
+          reconnection: true,
+          reconnectionAttempts: 5,
+          reconnectionDelay: 1000,
+        })
+
+        newSocket.on('connect', () => {
+          console.log('Connected to WebSocket server')
+          setIsSocketConnected(true)
+        })
+
+        newSocket.on('connect_error', (error) => {
+          console.error('Socket connection error:', error)
+          setIsSocketConnected(false)
+          toast.error('Failed to connect to real-time updates')
+        })
+
+        newSocket.on('disconnect', () => {
+          console.log('Disconnected from WebSocket server')
+          setIsSocketConnected(false)
+        })
+
+        setSocket(newSocket)
+
+        return () => {
+          newSocket.close()
         }
       } catch (error) {
         console.error('Failed to initialize WebSocket:', error)
@@ -42,10 +59,6 @@ export default function SharePage() {
     }
 
     initSocket()
-
-    return () => {
-      if (socket) socket.disconnect()
-    }
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,15 +75,18 @@ export default function SharePage() {
 
       if (!response.ok) throw new Error('Failed to create post')
       
-      const post = await response.json()
-      if (socket) {
-        socket.emit('new-post', post)
+      const post: Post = await response.json()
+      
+      // Emit post-created event if socket is connected
+      if (socket?.connected) {
+        socket.emit('post-created', post)
       }
       
       setContent('')
       setMood('neutral')
       toast.success('Your thought has been shared anonymously!')
     } catch (error) {
+      console.error('Error creating post:', error)
       toast.error('Failed to share your thought. Please try again.')
     } finally {
       setIsSubmitting(false)
