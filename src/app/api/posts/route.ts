@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const runtime = 'nodejs'
+
 export async function GET() {
   try {
     const posts = await prisma.post.findMany({
@@ -24,10 +26,24 @@ export async function POST(request: Request) {
   try {
     const { content, mood } = await request.json()
 
+    if (!content || typeof content !== 'string') {
+      return NextResponse.json(
+        { error: 'Content is required and must be a string' },
+        { status: 400 }
+      )
+    }
+
+    if (mood && !['happy', 'neutral', 'sad', 'angry'].includes(mood)) {
+      return NextResponse.json(
+        { error: 'Invalid mood value' },
+        { status: 400 }
+      )
+    }
+
     const post = await prisma.post.create({
       data: {
         content,
-        mood,
+        mood: mood || 'neutral',
       },
       include: {
         comments: true,
