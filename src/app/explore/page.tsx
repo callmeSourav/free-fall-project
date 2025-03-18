@@ -33,8 +33,7 @@ export default function ExplorePage() {
     const initSocket = async () => {
       try {
         // Initialize socket connection
-        const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
-          path: '/api/socket',
+        const newSocket = io('http://localhost:3002', {
           reconnection: true,
           reconnectionAttempts: 5,
           reconnectionDelay: 1000,

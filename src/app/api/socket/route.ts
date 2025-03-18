@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server'
 import { Server as NetServer } from 'http'
 import { Server as SocketIOServer } from 'socket.io'
+import { NextResponse } from 'next/server'
 
 let io: SocketIOServer | null = null
 let httpServer: NetServer | null = null
@@ -38,16 +38,16 @@ export async function GET() {
     io.on('connection', (socket) => {
       console.log('Client connected')
 
-      socket.on('new-post', (post) => {
+      socket.on('post-created', (post) => {
         io?.emit('post-created', post)
       })
 
-      socket.on('new-comment', (comment) => {
-        io?.emit('comment-created', comment)
+      socket.on('comment-created', (data) => {
+        io?.emit('comment-created', data)
       })
 
-      socket.on('new-like', (like) => {
-        io?.emit('like-updated', like)
+      socket.on('like-updated', (data) => {
+        io?.emit('like-updated', data)
       })
 
       socket.on('disconnect', () => {

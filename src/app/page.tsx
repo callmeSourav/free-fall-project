@@ -151,7 +151,7 @@ export default function Home() {
             transition={{ duration: 0.8 }}
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Ready to Start Your Journey?
+            Unburden your heart – You're not alone here.
             </h2>
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
               Join our community of free thinkers and start sharing your thoughts today.

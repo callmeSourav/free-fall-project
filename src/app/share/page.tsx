@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { FiInfo } from 'react-icons/fi'
 import { toast } from 'sonner'
 import io, { Socket } from 'socket.io-client'
@@ -18,14 +18,13 @@ export default function SharePage() {
   const [mood, setMood] = useState('neutral')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSocketConnected, setIsSocketConnected] = useState(false)
-  const [socket, setSocket] = useState<Socket | null>(null)
+  const socketRef = useRef<Socket | null>(null)
 
   useEffect(() => {
     const initSocket = async () => {
       try {
         // Initialize socket connection
-        const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
-          path: '/api/socket',
+        const newSocket = io('http://localhost:3002', {
           reconnection: true,
           reconnectionAttempts: 5,
           reconnectionDelay: 1000,
@@ -47,7 +46,7 @@ export default function SharePage() {
           setIsSocketConnected(false)
         })
 
-        setSocket(newSocket)
+        socketRef.current = newSocket
 
         return () => {
           newSocket.close()
@@ -78,8 +77,8 @@ export default function SharePage() {
       const post: Post = await response.json()
       
       // Emit post-created event if socket is connected
-      if (socket?.connected) {
-        socket.emit('post-created', post)
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('post-created', post)
       }
       
       setContent('')
