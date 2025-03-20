@@ -28,6 +28,23 @@ export async function DELETE(
   try {
     const { postId, commentId } = params
 
+    // First check if the comment exists
+    const comment = await withRetry(() =>
+      prisma.comment.findUnique({
+        where: {
+          id: commentId,
+        },
+      })
+    )
+
+    if (!comment) {
+      return NextResponse.json(
+        { error: 'Comment not found' },
+        { status: 404 }
+      )
+    }
+
+    // Then delete the comment
     await withRetry(() =>
       prisma.comment.delete({
         where: {

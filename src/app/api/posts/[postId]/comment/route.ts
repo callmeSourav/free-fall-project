@@ -36,6 +36,23 @@ export async function POST(
       )
     }
 
+    // First check if the post exists
+    const post = await withRetry(() =>
+      prisma.post.findUnique({
+        where: {
+          id: postId,
+        },
+      })
+    )
+
+    if (!post) {
+      return NextResponse.json(
+        { error: 'Post not found' },
+        { status: 404 }
+      )
+    }
+
+    // Then create the comment
     const comment = await withRetry(() =>
       prisma.comment.create({
         data: {
