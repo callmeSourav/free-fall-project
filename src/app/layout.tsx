@@ -7,8 +7,18 @@ import { Toaster } from 'sonner'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Free Fall - Share Your Thoughts',
-  description: 'A safe space to share your thoughts anonymously',
+  title: 'FreeFall - Share Your Thoughts Anonymously',
+  description: 'A safe space to share your thoughts and feelings anonymously.',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+    other: {
+      rel: 'mask-icon',
+      url: '/favicon.svg',
+      color: '#3B82F6'
+    }
+  }
 }
 
 export default function RootLayout({

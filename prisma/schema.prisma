@@ -1,10 +1,10 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model Post {
@@ -13,20 +13,17 @@ model Post {
   mood      String    @default("neutral")
   createdAt DateTime  @default(now())
   comments  Comment[]
-  likes     Like[]
+  likes     Int       @default(0)
+
+  @@map("posts")
 }
 
 model Comment {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   content   String
-  createdAt DateTime @default(now())
   postId    String   @db.ObjectId
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-}
+  createdAt DateTime @default(now())
 
-model Like {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  createdAt DateTime @default(now())
-  postId    String   @db.ObjectId
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  @@map("comments")
 } 

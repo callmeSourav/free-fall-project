@@ -10,7 +10,7 @@ interface Post {
   content: string;
   mood: string;
   createdAt: string;
-  comments: any[]; // Add comments array to match the explore page structure
+  comments: any[];
 }
 
 export default function SharePage() {
@@ -23,8 +23,8 @@ export default function SharePage() {
   useEffect(() => {
     const initSocket = async () => {
       try {
-        // Initialize socket connection
-        const newSocket = io('http://localhost:3002', {
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3002'
+        const newSocket = io(socketUrl, {
           reconnection: true,
           reconnectionAttempts: 5,
           reconnectionDelay: 1000,
@@ -66,17 +66,20 @@ export default function SharePage() {
 
     setIsSubmitting(true)
     try {
-      const response = await fetch('/api/posts', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+      const response = await fetch(`${apiUrl}/api/posts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, mood }),
       })
 
-      if (!response.ok) throw new Error('Failed to create post')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create post')
+      }
       
       const post: Post = await response.json()
       
-      // Emit post-created event if socket is connected
       if (socketRef.current?.connected) {
         socketRef.current.emit('post-created', post)
       }
@@ -84,9 +87,9 @@ export default function SharePage() {
       setContent('')
       setMood('neutral')
       toast.success('Your thought has been shared anonymously!')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating post:', error)
-      toast.error('Failed to share your thought. Please try again.')
+      toast.error(error.message || 'Failed to share your thought. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
