@@ -21,47 +21,32 @@ async function withRetry<T>(operation: () => Promise<T>, maxRetries = 3): Promis
   throw lastError
 }
 
-export async function POST(
+export async function DELETE(
   request: Request,
-  { params }: { params: { postId: string } }
+  { params }: { params: { postId: string; commentId: string } }
 ) {
   try {
-    const { content } = await request.json()
-    const { postId } = params
+    const { postId, commentId } = params
 
-    if (!content?.trim()) {
-      return NextResponse.json(
-        { error: 'Comment content is required' },
-        { status: 400 }
-      )
-    }
-
-    const comment = await withRetry(() =>
-      prisma.comment.create({
-        data: {
-          content,
-          postId,
+    await withRetry(() =>
+      prisma.comment.delete({
+        where: {
+          id: commentId,
         },
       })
     )
 
-    return NextResponse.json(comment)
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Failed to create comment:', error)
+    console.error('Failed to delete comment:', error)
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return NextResponse.json(
         { error: 'Database connection error. Please try again later.' },
         { status: 503 }
       )
     }
-    if (error instanceof SyntaxError) {
-      return NextResponse.json(
-        { error: 'Invalid JSON data' },
-        { status: 400 }
-      )
-    }
     return NextResponse.json(
-      { error: 'Failed to create comment. Please try again.' },
+      { error: 'Failed to delete comment. Please try again.' },
       { status: 500 }
     )
   }
